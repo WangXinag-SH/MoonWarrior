@@ -57,7 +57,16 @@ function player_explode_anim(npc)
 	local animate = CCAnimate:create(animation)
 
 	--sprite:runAction( CCRepeatForever:create(animate) )
-	sprite:runAction( animate )
+	--sprite:runAction( animate )
+	
+	--local sequence = CCSequence:createWithTwoActions(animate, CCCallFunc:create(endFunc))	
+	local function endF()
+		--CCLuaLog("TEST REMOVE ANIM")
+		sprite:getParent():removeChild(sprite, true)
+		--sprite:removeFromParent()
+	end
+	local sequence = CCSequence:createWithTwoActions(animate, CCCallFunc:create(endF))	
+	sprite:runAction(sequence) 
 
 	return sprite;
 end

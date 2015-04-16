@@ -65,7 +65,7 @@ function update_bg_layer()
 end
 
 function update()
-	update_bg_layer()
+	update_bg_layer()	
 end
 
 local function getWarriorPoint()
@@ -90,7 +90,7 @@ end
 
 function init_scene()
 	initAudio()	
-	AudioEngine.playMusic(bgMusic, true)
+	--AudioEngine.playMusic(bgMusic, true)
 
 	gameScene:addChild(init_bg_layer(), 200)
 
@@ -142,15 +142,31 @@ function init_scene()
 	register_touch_event()
 
 	--add npc	
-	for k,v in pairs(NPC) do
-		local n   = create_npc(v.time, v.type, CCPoint(v.startX, v.startY))
+	--[[for k,v in pairs(NPC) do
+		local n = create_npc(v.time, v.type, CCPoint(v.startX, v.startY))
+		warriorLayer:addChild(n)
+
+		npcArray:addObject(n)
+	end--]]
+	
+	--create npc
+	local function npc_create()
+		local npcSeed = tostring(os.time()):reverse()
+		math.randomseed(npcSeed)
+		local randomNpc = math.random(0, table.getn(NPC)-1)
+		--CCLuaLog("NPC table size is " .. table.getn(NPC))
+		local c = NPC[randomNpc + 1]
+		--local n = create_npc(c.time, c.type, CCPoint(c.startX, c.startY))
+		local startX = math.random(0, winSize.width - 60)
+		--CCLuaLog("startX = "..startX)
+		local n = create_npc(c.time, c.type, CCPoint(startX, winSize.height - 60))
 		warriorLayer:addChild(n)
 
 		npcArray:addObject(n)
 	end
+	
 
 	--create bullet 
-	
 	local function b_create( )
 		local bullet = create_bullet(warrior)
 		bulletArray:addObject(bullet)
@@ -167,13 +183,18 @@ function init_scene()
 			
 			--checkCollison
 			local npcSize = npcArray:count()
-			for j=0,npcSize-1 do
+			--for j=0,npcSize-1 do
+			for j=npcSize-1,0,-1 do
 				local _npc = tolua.cast(npcArray:objectAtIndex(j), "CCSprite")
 
 				if bullet_collison(b, _npc)  then
 					--CCLuaLog("bullet collision i = "..i .. ", j = " .. j)
+					--隐藏子弹
+					b:setVisible(false)
 					--播放动画 
-					warriorLayer:addChild( player_explode_anim(_npc) )
+					local anim = player_explode_anim(_npc)
+					warriorLayer:addChild(anim)
+					
 					--播放音效
 					AudioEngine.playEffect( explodeMusic )
 					--AudioEngine.playMusic( explodeMusic )	--playMusic会把背景音乐打断
@@ -185,6 +206,10 @@ function init_scene()
 					bulletArray:removeObjectAtIndex(i, true)
 					b = nil
 					break
+				elseif _npc~=nil and npc_bound_collison(_npc)	then
+					--npc超出边界 
+					warriorLayer:removeChildByTag(_npc:getTag(), true)
+					npcArray:removeObjectAtIndex(j, true)
 				end
 			end
 			
@@ -201,9 +226,23 @@ function init_scene()
 		end
 	end
 
+
+	local function keypadHandler(strEvent)
+		CCLuaLog("============== strEvent : ".. strEvent)
+		if "backClicked" == strEvent then
+			--CCLuaLog("back clicked")
+			local mainScene = require("scripts.mainmenu")
+			CCDirector:sharedDirector():runWithScene(mainScene)
+    	elseif "menuClicked" == strEvent then
+    		CCLuaLog("menu clicked")
+    	end
+	end
+	warriorLayer:registerScriptKeypadHandler(keypadHandler)
+
 	gameScene:addChild(warriorLayer, 300)
 
 	CCDirector:sharedDirector():getScheduler():scheduleScriptFunc(update, 0, false)
+	CCDirector:sharedDirector():getScheduler():scheduleScriptFunc(npc_create, 0.5, false)
 	CCDirector:sharedDirector():getScheduler():scheduleScriptFunc(b_create, 0.3, false)
 	CCDirector:sharedDirector():getScheduler():scheduleScriptFunc(b_move, 0.01, false)
 end
